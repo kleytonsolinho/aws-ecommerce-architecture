@@ -18,25 +18,38 @@ export async function handler(
   );
 
   if (event.resource === "/products") {
-    if (method === "GET") {
-      console.log("Products fetch function - GET /products");
+    if (method === "POST") {
+      console.log("Products POST function - POST /products");
 
       return {
-        statusCode: 200,
+        statusCode: 201,
         body: JSON.stringify({
-          message: "Products fetch function - GET /products",
+          message: "Products POST function - POST /products",
         }),
       };
     }
   } else if (event.resource === "/products/{id}") {
     const productId = event.pathParameters!.id as String;
-    if (method === "GET" && !!productId) {
-      console.log(`Unique product fetch function - GET /products/${productId}`);
+    if (method === "PUT" && !!productId) {
+      console.log(`Unique product PUT function - PUT /products/${productId}`);
 
       return {
         statusCode: 200,
         body: JSON.stringify({
-          message: `Unique product fetch function - GET /products/${productId}`,
+          message: `Unique product PUT function - PUT /products/${productId}`,
+        }),
+      };
+    }
+
+    if (method === "DELETE" && !!productId) {
+      console.log(
+        `Unique product DELETE function - DELETE /products/${productId}`
+      );
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: `Unique product DELETE function - DELETE /products/${productId}`,
         }),
       };
     }

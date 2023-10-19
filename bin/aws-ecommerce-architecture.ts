@@ -24,5 +24,6 @@ const ecommerceApiStack = new ECommerceApiStack(app, "ECommerceApi", {
   env,
   tags,
   productsFetchHandler: productsAppStack.productsFetchHandler,
+  productsAdminHandler: productsAppStack.productsAdminHandler,
 });
 ecommerceApiStack.addDependency(productsAppStack);

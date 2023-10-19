@@ -3,6 +3,12 @@ import {
   APIGatewayProxyResult,
   Context,
 } from "aws-lambda";
+import { DynamoDB } from "aws-sdk";
+import { ProductRepository } from "/opt/nodejs/productsLayer";
+
+const productsDdb = process.env.PRODUCTS_DDB! as string;
+const ddbClient = new DynamoDB.DocumentClient();
+const productRepository = new ProductRepository(ddbClient, productsDdb);
 
 export async function handler(
   event: APIGatewayProxyEvent,
@@ -19,26 +25,37 @@ export async function handler(
 
   if (event.resource === "/products") {
     if (method === "GET") {
-      console.log("Products fetch function - GET /products");
+      console.log("Products fetch function - GET ALL /products");
+
+      const products = await productRepository.getAllProducts();
 
       return {
         statusCode: 200,
-        body: JSON.stringify({
-          message: "Products fetch function - GET /products",
-        }),
+        body: JSON.stringify(products),
       };
     }
   } else if (event.resource === "/products/{id}") {
-    const productId = event.pathParameters!.id as String;
+    const productId = event.pathParameters!.id as string;
     if (method === "GET" && !!productId) {
-      console.log(`Unique product fetch function - GET /products/${productId}`);
+      console.log(
+        `Unique product fetch function - GET ONE /products/${productId}`
+      );
 
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          message: `Unique product fetch function - GET /products/${productId}`,
-        }),
-      };
+      try {
+        const product = await productRepository.getProductById(productId);
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify(product),
+        };
+      } catch (error) {
+        console.error((<Error>error).message);
+
+        return {
+          statusCode: 404,
+          body: (<Error>error).message,
+        };
+      }
     }
   }
 

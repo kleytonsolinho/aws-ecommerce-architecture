@@ -37,7 +37,7 @@ function createEvent(event: ProductEvent) {
       TableName: eventsDdb,
       Item: {
         pk: `#product_${event.productCode}`,
-        sl: `${event.eventType}#${timestamp}`,
+        sk: `${event.eventType}#${timestamp}`,
         email: event.email,
         createdAt: timestamp,
         requestId: event.requestId,

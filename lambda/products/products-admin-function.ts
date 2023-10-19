@@ -38,14 +38,14 @@ export async function handler(
       const product = JSON.parse(event.body!) as Product;
       const productCreated = await productRepository.createProduct(product);
 
-      const response = await sendProductEvent(
+      const responseEvent = await sendProductEvent(
         productCreated,
         ProductEventType.CREATED,
         "kleyton@teste.com.br",
         lambdaRequestId
       );
 
-      console.log(`Product event sent: ${response}`);
+      console.log(`Product event sent: ${JSON.stringify(responseEvent)}`);
 
       return {
         statusCode: 201,
@@ -64,14 +64,14 @@ export async function handler(
           product
         );
 
-        const response = await sendProductEvent(
+        const responseEvent = await sendProductEvent(
           productUpdated,
           ProductEventType.UPDATED,
           "sofia@teste.com.br",
           lambdaRequestId
         );
 
-        console.log(`Product event sent: ${response}`);
+        console.log(`Product event sent: ${JSON.stringify(responseEvent)}`);
 
         return {
           statusCode: 200,
@@ -93,14 +93,14 @@ export async function handler(
       try {
         const productDeleted = await productRepository.deleteProduct(productId);
 
-        const response = await sendProductEvent(
+        const responseEvent = await sendProductEvent(
           productDeleted,
           ProductEventType.DELETED,
           "hannah@teste.com.br",
           lambdaRequestId
         );
 
-        console.log(`Product event sent: ${response}`);
+        console.log(`Product event sent: ${JSON.stringify(responseEvent)}`);
 
         return {
           statusCode: 200,

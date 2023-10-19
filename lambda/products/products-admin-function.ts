@@ -3,14 +3,19 @@ import {
   APIGatewayProxyResult,
   Context,
 } from "aws-lambda";
-import { DynamoDB } from "aws-sdk";
+import { DynamoDB, Lambda } from "aws-sdk";
 import * as AWSXRay from "aws-xray-sdk";
+import { ProductEvent, ProductEventType } from "/opt/nodejs/productEventsLayer";
 import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
 
 AWSXRay.captureAWS(require("aws-sdk"));
 
 const productsDdb = process.env.PRODUCTS_DDB! as string;
+const productEventsFunctionName = process.env
+  .PRODUCT_EVENTS_FUNCTION! as string;
 const ddbClient = new DynamoDB.DocumentClient();
+const lambdaClient = new Lambda();
+
 const productRepository = new ProductRepository(ddbClient, productsDdb);
 
 export async function handler(
@@ -33,6 +38,15 @@ export async function handler(
       const product = JSON.parse(event.body!) as Product;
       const productCreated = await productRepository.createProduct(product);
 
+      const response = await sendProductEvent(
+        productCreated,
+        ProductEventType.CREATED,
+        "kleyton@teste.com.br",
+        lambdaRequestId
+      );
+
+      console.log(`Product event sent: ${response}`);
+
       return {
         statusCode: 201,
         body: JSON.stringify(productCreated),
@@ -49,6 +63,15 @@ export async function handler(
           productId,
           product
         );
+
+        const response = await sendProductEvent(
+          productUpdated,
+          ProductEventType.UPDATED,
+          "sofia@teste.com.br",
+          lambdaRequestId
+        );
+
+        console.log(`Product event sent: ${response}`);
 
         return {
           statusCode: 200,
@@ -68,10 +91,20 @@ export async function handler(
       );
 
       try {
-        const product = await productRepository.deleteProduct(productId);
+        const productDeleted = await productRepository.deleteProduct(productId);
+
+        const response = await sendProductEvent(
+          productDeleted,
+          ProductEventType.DELETED,
+          "hannah@teste.com.br",
+          lambdaRequestId
+        );
+
+        console.log(`Product event sent: ${response}`);
+
         return {
           statusCode: 200,
-          body: JSON.stringify(product),
+          body: JSON.stringify(productDeleted),
         };
       } catch (error) {
         console.error((<Error>error).message);
@@ -90,4 +123,28 @@ export async function handler(
       message: "Bad request",
     }),
   };
+}
+
+function sendProductEvent(
+  product: Product,
+  eventType: ProductEventType,
+  email: string,
+  lambdaRequestId: string
+) {
+  const event: ProductEvent = {
+    email,
+    eventType,
+    productCode: product.code,
+    productId: product.id,
+    productPrice: product.price,
+    requestId: lambdaRequestId,
+  };
+
+  return lambdaClient
+    .invoke({
+      FunctionName: productEventsFunctionName,
+      Payload: JSON.stringify(event),
+      InvocationType: "RequestResponse",
+    })
+    .promise();
 }

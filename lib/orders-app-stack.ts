@@ -188,10 +188,21 @@ export class OrdersAppStack extends cdk.Stack {
       })
     );
 
+    const orderEventsDlq = new sqs.Queue(this, "OrderEventsDlq", {
+      queueName: "order-events-dlq",
+      enforceSSL: false,
+      encryption: sqs.QueueEncryption.UNENCRYPTED,
+      retentionPeriod: cdk.Duration.days(10),
+    });
+
     const orderEventsQueue = new sqs.Queue(this, "OrderEventsQueue", {
       queueName: "order-events",
       enforceSSL: false,
       encryption: sqs.QueueEncryption.UNENCRYPTED,
+      deadLetterQueue: {
+        queue: orderEventsDlq,
+        maxReceiveCount: 3,
+      },
     });
     ordersTopic.addSubscription(
       new snsSubs.SqsSubscription(orderEventsQueue, {
@@ -223,11 +234,13 @@ export class OrdersAppStack extends cdk.Stack {
       }
     );
     orderEmailsHandler.addEventSource(
-      new lambdaEventSources.SqsEventSource(orderEventsQueue, {
+      new lambdaEventSources.SqsEventSource(
+        orderEventsQueue /*, {
         batchSize: 5,
         enabled: true,
         maxBatchingWindow: cdk.Duration.minutes(1),
-      })
+      }*/
+      )
     );
     orderEventsQueue.grantConsumeMessages(orderEmailsHandler);
   }

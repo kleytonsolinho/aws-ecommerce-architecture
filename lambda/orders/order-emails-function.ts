@@ -7,9 +7,14 @@ export async function handler(
   event: SQSEvent,
   context: Context
 ): Promise<void> {
-  event.Records.forEach((record) => {
-    console.log(record);
-    const body = JSON.parse(record.body);
-    console.log(body);
-  });
+  // TODO - to be removed
+  console.log("Non valid event type");
+  throw "Non valid event type";
+
+  // event.Records.forEach((record) => {
+  //   console.log(record);
+  //   const body = JSON.parse(record.body);
+  //   console.log(body);
+  // });
+  // return;
 }

@@ -76,12 +76,12 @@ export class ECommerceApiStack extends cdk.Stack {
 
     // POST /orders/
 
-    const orderCreationValidator = new apigateway.RequestValidator(
+    const orderCreateValidator = new apigateway.RequestValidator(
       this,
-      "OrderCreationValidator",
+      "OrderCreateValidator",
       {
         restApi: api,
-        requestValidatorName: "OrderCreationValidator",
+        requestValidatorName: "OrderCreateValidator",
         validateRequestBody: true,
       }
     );
@@ -112,7 +112,7 @@ export class ECommerceApiStack extends cdk.Stack {
     });
 
     ordersResource.addMethod("POST", ordersIntegration, {
-      requestValidator: orderCreationValidator,
+      requestValidator: orderCreateValidator,
       requestModels: {
         "application/json": orderModel,
       },
@@ -140,10 +140,57 @@ export class ECommerceApiStack extends cdk.Stack {
     );
 
     // POST /products
-    productsResource.addMethod("POST", productsAdminIntegration);
+
+    const productCreateOrUpdateValidator = new apigateway.RequestValidator(
+      this,
+      "ProductCreateOrUpdateValidator",
+      {
+        restApi: api,
+        requestValidatorName: "ProductCreateOrUpdateValidator",
+        validateRequestBody: true,
+      }
+    );
+
+    const productModel = new apigateway.Model(this, "ProductModel", {
+      modelName: "ProductModel",
+      restApi: api,
+      schema: {
+        type: apigateway.JsonSchemaType.OBJECT,
+        properties: {
+          productName: {
+            type: apigateway.JsonSchemaType.STRING,
+          },
+          code: {
+            type: apigateway.JsonSchemaType.STRING,
+          },
+          price: {
+            type: apigateway.JsonSchemaType.NUMBER,
+          },
+          model: {
+            type: apigateway.JsonSchemaType.STRING,
+          },
+          productUrl: {
+            type: apigateway.JsonSchemaType.STRING,
+          },
+        },
+        required: ["productName", "code"],
+      },
+    });
+
+    productsResource.addMethod("POST", productsAdminIntegration, {
+      requestValidator: productCreateOrUpdateValidator,
+      requestModels: {
+        "application/json": productModel,
+      },
+    });
 
     // PUT /products/{id}
-    productIdResource.addMethod("PUT", productsAdminIntegration);
+    productIdResource.addMethod("PUT", productsAdminIntegration, {
+      requestValidator: productCreateOrUpdateValidator,
+      requestModels: {
+        "application/json": productModel,
+      },
+    });
 
     // DELETE /products/{id}
     productIdResource.addMethod("DELETE", productsAdminIntegration);

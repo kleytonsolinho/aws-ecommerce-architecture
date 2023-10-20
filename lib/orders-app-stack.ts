@@ -158,5 +158,33 @@ export class OrdersAppStack extends cdk.Stack {
       },
     });
     orderEventHandler.addToRolePolicy(eventsDdbPolicy);
+
+    const billingHandler = new lambdaNodeJS.NodejsFunction(
+      this,
+      "BillingFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_16_X,
+        functionName: "BillingFunction",
+        entry: "lambda/orders/billing-function.ts",
+        handler: "handler",
+        memorySize: 128,
+        timeout: cdk.Duration.seconds(2),
+        bundling: {
+          minify: true,
+          sourceMap: false,
+        },
+        tracing: lambda.Tracing.ACTIVE,
+        insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+      }
+    );
+    ordersTopic.addSubscription(
+      new snsSubs.LambdaSubscription(billingHandler, {
+        filterPolicy: {
+          eventType: sns.SubscriptionFilter.stringFilter({
+            allowlist: ["ORDER_CREATED"],
+          }),
+        },
+      })
+    );
   }
 }

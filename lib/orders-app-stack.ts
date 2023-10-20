@@ -2,9 +2,11 @@ import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as lambdaNodeJS from "aws-cdk-lib/aws-lambda-nodejs";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as snsSubs from "aws-cdk-lib/aws-sns-subscriptions";
+import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as ssm from "aws-cdk-lib/aws-ssm";
 
 import { Construct } from "constructs";
@@ -116,7 +118,6 @@ export class OrdersAppStack extends cdk.Stack {
         insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
       }
     );
-
     ordersDdb.grantReadWriteData(this.ordersHandler);
     props.productsDdb.grantReadData(this.ordersHandler);
     ordersTopic.grantPublish(this.ordersHandler);
@@ -186,5 +187,36 @@ export class OrdersAppStack extends cdk.Stack {
         },
       })
     );
+
+    const orderEventsQueue = new sqs.Queue(this, "OrderEventsQueue", {
+      queueName: "order-events",
+      enforceSSL: false,
+      encryption: sqs.QueueEncryption.UNENCRYPTED,
+    });
+    ordersTopic.addSubscription(new snsSubs.SqsSubscription(orderEventsQueue));
+
+    const orderEmailsHandler = new lambdaNodeJS.NodejsFunction(
+      this,
+      "OrderEmailsFunction",
+      {
+        runtime: lambda.Runtime.NODEJS_16_X,
+        functionName: "OrderEmailsFunction",
+        entry: "lambda/orders/order-emails-function.ts",
+        handler: "handler",
+        memorySize: 128,
+        timeout: cdk.Duration.seconds(2),
+        bundling: {
+          minify: true,
+          sourceMap: false,
+        },
+        layers: [orderEventsLayer],
+        tracing: lambda.Tracing.ACTIVE,
+        insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_119_0,
+      }
+    );
+    orderEmailsHandler.addEventSource(
+      new lambdaEventSources.SqsEventSource(orderEventsQueue)
+    );
+    orderEventsQueue.grantConsumeMessages(orderEmailsHandler);
   }
 }

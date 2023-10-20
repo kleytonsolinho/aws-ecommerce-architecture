@@ -8,6 +8,7 @@ import { Construct } from "constructs";
 interface ECommerceApiStackProps extends cdk.StackProps {
   productsFetchHandler: lambdaNodeJS.NodejsFunction;
   productsAdminHandler: lambdaNodeJS.NodejsFunction;
+  ordersHandler: lambdaNodeJS.NodejsFunction;
 }
 
 export class ECommerceApiStack extends cdk.Stack {
@@ -15,7 +16,6 @@ export class ECommerceApiStack extends cdk.Stack {
     super(scope, id, props);
 
     const logGroup = new cwlogs.LogGroup(this, "ECommerceApiLogs");
-
     const api = new apigateway.RestApi(this, "ECommerceApi", {
       restApiName: "ECommerce API",
       cloudWatchRole: true,
@@ -35,6 +35,53 @@ export class ECommerceApiStack extends cdk.Stack {
       },
     });
 
+    this.createProductsService(props, api);
+
+    this.createOrdersService(props, api);
+  }
+
+  private createOrdersService(
+    props: ECommerceApiStackProps,
+    api: cdk.aws_apigateway.RestApi
+  ) {
+    const ordersIntegration = new apigateway.LambdaIntegration(
+      props.ordersHandler
+    );
+
+    const ordersResource = api.root.addResource("orders");
+
+    // GET /orders
+    // GET /orders/?email={email}
+    // GET /orders/?email={email}&orderId={orderId}
+    ordersResource.addMethod("GET", ordersIntegration);
+
+    const orderDeletionValidator = new apigateway.RequestValidator(
+      this,
+      "OrderDeletionValidator",
+      {
+        restApi: api,
+        requestValidatorName: "OrderDeletionValidator",
+        validateRequestParameters: true,
+      }
+    );
+
+    // DELETE /orders/?email={email}&orderId={orderId}
+    ordersResource.addMethod("DELETE", ordersIntegration, {
+      requestParameters: {
+        "method.request.querystring.email": true,
+        "method.request.querystring.orderId": true,
+      },
+      requestValidator: orderDeletionValidator,
+    });
+
+    // POST /orders/
+    ordersResource.addMethod("POST", ordersIntegration);
+  }
+
+  private createProductsService(
+    props: ECommerceApiStackProps,
+    api: cdk.aws_apigateway.RestApi
+  ) {
     const productsFetchIntegration = new apigateway.LambdaIntegration(
       props.productsFetchHandler
     );

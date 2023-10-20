@@ -50,6 +50,7 @@ const ordersAppStack = new OrdersAppStack(app, "OrdersApp", {
   env,
   tags,
   productsDdb: productsAppStack.productsDdb,
+  eventsDdb: eventsDdbStack.table,
 });
 ordersAppStack.addDependency(productsAppStack);
 ordersAppStack.addDependency(ordersAppLayersStack);

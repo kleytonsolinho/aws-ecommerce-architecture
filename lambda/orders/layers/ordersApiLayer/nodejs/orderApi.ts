@@ -41,5 +41,5 @@ export interface OrderResponse {
     carrier: CarrierType;
   };
   createdAt: string;
-  products: OrderProductResponse[];
+  products?: OrderProductResponse[];
 }

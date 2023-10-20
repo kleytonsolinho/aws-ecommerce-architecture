@@ -5,6 +5,7 @@ import {
 } from "aws-lambda";
 import { DynamoDB, SNS } from "aws-sdk";
 import * as AWSXRay from "aws-xray-sdk";
+import { v4 as uuidv4 } from "uuid";
 import {
   Envelope,
   OrderEvent,
@@ -100,19 +101,24 @@ export async function handler(
 
     if (products.length === orderRequest.productsIds.length) {
       const order = buildOrder(orderRequest, products);
-      const orderCreated = await orderRepository.createOrder(order);
+      const orderCreatedPromise = orderRepository.createOrder(order);
 
-      const eventResult = await sendOrderEvent(
-        orderCreated,
+      const eventResultPromise = sendOrderEvent(
+        order,
         OrderEventType.CREATED,
         lambdaRequestId
       );
 
+      const [, eventResult] = await Promise.all([
+        orderCreatedPromise,
+        eventResultPromise,
+      ]);
+
       console.log(
-        ` Order created event sent - OrderId: ${orderCreated.sk} - MessageId: ${eventResult.MessageId}`
+        ` Order created event sent - OrderId: ${order.sk} - MessageId: ${eventResult.MessageId}`
       );
 
-      const orderResponse = convertToOrderResponse(orderCreated);
+      const orderResponse = convertToOrderResponse(order);
 
       return {
         statusCode: 201,
@@ -248,6 +254,8 @@ function buildOrder(orderRequest: OrderRequest, products: Product[]): Order {
 
   const order: Order = {
     pk: orderRequest.email,
+    sk: uuidv4(),
+    createdAt: Date.now().toString(),
     billing: {
       payment: orderRequest.paymentType,
       totalPrice,

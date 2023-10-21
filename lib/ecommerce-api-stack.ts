@@ -91,10 +91,6 @@ export class ECommerceApiStack extends cdk.Stack {
     // cognito customer
 
     this.customerPool = new cognito.UserPool(this, "CustomerPool", {
-      lambdaTriggers: {
-        preAuthentication: preAuthenticationHandler,
-        postAuthentication: postConfirmationHandler,
-      },
       userPoolName: "CustomerPool",
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       selfSignUpEnabled: true,
@@ -136,6 +132,15 @@ export class ECommerceApiStack extends cdk.Stack {
         domainPrefix: "kbs-customer-service",
       },
     });
+
+    this.customerPool.addTrigger(
+      cognito.UserPoolOperation.PRE_AUTHENTICATION,
+      preAuthenticationHandler
+    );
+    this.customerPool.addTrigger(
+      cognito.UserPoolOperation.POST_CONFIRMATION,
+      postConfirmationHandler
+    );
 
     const customerWebScope = new cognito.ResourceServerScope({
       scopeName: "web",

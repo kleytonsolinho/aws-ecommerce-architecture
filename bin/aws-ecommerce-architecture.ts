@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
 import "source-map-support/register";
+import { AuthLayersStack } from "../lib/auth-layers-stack";
 import { ECommerceApiStack } from "../lib/ecommerce-api-stack";
 import { EventsDdbStack } from "../lib/events-ddb-stack";
 import { OrdersAppLayersStack } from "../lib/orders-app-layers-stack";
@@ -19,6 +20,11 @@ const tags = {
   cost: "ECommerce",
   team: "SiecolaCode",
 };
+
+const authLayersStack = new AuthLayersStack(app, "AuthLayers", {
+  env,
+  tags,
+});
 
 const productsAppLayersStack = new ProductsAppLayersStack(
   app,
@@ -39,6 +45,7 @@ const productsAppStack = new ProductsAppStack(app, "ProductsApp", {
   eventsDdb: eventsDdbStack.table,
 });
 productsAppStack.addDependency(productsAppLayersStack);
+productsAppStack.addDependency(authLayersStack);
 productsAppStack.addDependency(eventsDdbStack);
 
 const ordersAppLayersStack = new OrdersAppLayersStack(app, "OrdersAppLayers", {

@@ -3,8 +3,9 @@ import {
   APIGatewayProxyResult,
   Context,
 } from "aws-lambda";
-import { DynamoDB, Lambda } from "aws-sdk";
+import { CognitoIdentityServiceProvider, DynamoDB, Lambda } from "aws-sdk";
 import * as AWSXRay from "aws-xray-sdk";
+import { AuthInfoService } from "/opt/nodejs/authUserInfo";
 import { ProductEvent, ProductEventType } from "/opt/nodejs/productEventsLayer";
 import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
 
@@ -15,6 +16,8 @@ const productEventsFunctionName = process.env
   .PRODUCT_EVENTS_FUNCTION! as string;
 const ddbClient = new DynamoDB.DocumentClient();
 const lambdaClient = new Lambda();
+const cognitoIdentityServiceProvider = new CognitoIdentityServiceProvider();
+const authInfoService = new AuthInfoService(cognitoIdentityServiceProvider);
 
 const productRepository = new ProductRepository(ddbClient, productsDdb);
 
@@ -31,6 +34,10 @@ export async function handler(
     `API Gateway Request ID: ${apiRequestId} - Lambda Request ID: ${lambdaRequestId}`
   );
 
+  const userEmail = await authInfoService.getUserInfo(
+    event.requestContext.authorizer!
+  );
+
   if (event.resource === "/products") {
     if (method === "POST") {
       console.log("Products POST function - POST /products");
@@ -41,7 +48,7 @@ export async function handler(
       const responseEvent = await sendProductEvent(
         productCreated,
         ProductEventType.CREATED,
-        "kleyton@teste.com.br",
+        userEmail,
         lambdaRequestId
       );
 
@@ -67,7 +74,7 @@ export async function handler(
         const responseEvent = await sendProductEvent(
           productUpdated,
           ProductEventType.UPDATED,
-          "sofia@teste.com.br",
+          userEmail,
           lambdaRequestId
         );
 
@@ -96,7 +103,7 @@ export async function handler(
         const responseEvent = await sendProductEvent(
           productDeleted,
           ProductEventType.DELETED,
-          "hannah@teste.com.br",
+          userEmail,
           lambdaRequestId
         );
 

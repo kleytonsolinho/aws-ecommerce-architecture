@@ -43,6 +43,9 @@
       "/opt/nodejs/orderEventsRepositoryLayer": [
         "lambda/orders/layers/orderEventsRepositoryLayer/nodejs/orderEventsRepository"
       ],
+      "/opt/nodejs/authUserInfo": [
+        "lambda/auth/layers/authUserInfo/nodejs/authUserInfo"
+      ],
     }
   },
   "exclude": [

@@ -127,12 +127,6 @@ export class ECommerceApiStack extends cdk.Stack {
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
     });
 
-    this.customerPool.addDomain("CustomerPoolDomain", {
-      cognitoDomain: {
-        domainPrefix: "kbs-customer-service",
-      },
-    });
-
     this.customerPool.addTrigger(
       cognito.UserPoolOperation.PRE_AUTHENTICATION,
       preAuthenticationHandler
@@ -142,14 +136,20 @@ export class ECommerceApiStack extends cdk.Stack {
       postConfirmationHandler
     );
 
+    this.customerPool.addDomain("CustomerDomain", {
+      cognitoDomain: {
+        domainPrefix: "kbs123osda-customer-service",
+      },
+    });
+
     const customerWebScope = new cognito.ResourceServerScope({
       scopeName: "web",
-      scopeDescription: "Access for customer web",
+      scopeDescription: "Customer web operation",
     });
 
     const customerMobileScope = new cognito.ResourceServerScope({
       scopeName: "mobile",
-      scopeDescription: "Access for customer mobile",
+      scopeDescription: "Customer mobile operation",
     });
 
     const customerResourceServer = this.customerPool.addResourceServer(
@@ -161,7 +161,7 @@ export class ECommerceApiStack extends cdk.Stack {
       }
     );
 
-    this.customerPool.addClient("CustomerWebClient", {
+    this.customerPool.addClient("costumer-web-client", {
       userPoolClientName: "CustomerWebClient",
       authFlows: {
         userPassword: true,
@@ -178,7 +178,7 @@ export class ECommerceApiStack extends cdk.Stack {
       },
     });
 
-    this.customerPool.addClient("CustomerMobileClient", {
+    this.customerPool.addClient("costumer-mobile-client", {
       userPoolClientName: "CustomerMobileClient",
       authFlows: {
         userPassword: true,
@@ -201,7 +201,6 @@ export class ECommerceApiStack extends cdk.Stack {
       {
         authorizerName: "ProductsAuthorizer",
         cognitoUserPools: [this.customerPool],
-        identitySource: "method.request.header.Authorization",
       }
     );
   }
@@ -320,7 +319,7 @@ export class ECommerceApiStack extends cdk.Stack {
       props.productsFetchHandler
     );
 
-    const productsFetchWebMobileIntegrationOption = {
+    const productsFetchWeAndMobileIntegrationOption = {
       authorizer: this.productsAuthorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
       authorizationScope: ["customer/web", "customer/mobile"],
@@ -337,7 +336,7 @@ export class ECommerceApiStack extends cdk.Stack {
     productsResource.addMethod(
       "GET",
       productsFetchIntegration,
-      productsFetchWebMobileIntegrationOption
+      productsFetchWeAndMobileIntegrationOption
     );
 
     // GET /products/{id}
